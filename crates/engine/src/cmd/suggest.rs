@@ -10,7 +10,7 @@
 
 use serde_json::{Value, json};
 use wordcraft_doc::para::OBJ;
-use wordcraft_doc::suggest::{AUTHOR, is_suggestion};
+use wordcraft_doc::suggest::{AUTHOR, CODEX_AUTHOR, is_suggestion};
 use wordcraft_doc::{Block, Document, Path, Pos, Revision, RevisionKind, StoryRef};
 
 use crate::{CmdError, CmdResult, CommandSpec, Session};
@@ -22,7 +22,7 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("suggest.add", "Add Suggestion", "Review › Companion", add)
             .params(
-                r#"{"find": string, "replace": string} | {"after"|"before": string, "insert": string}, "occurrence"?: n (1-based, when the quote appears more than once)"#,
+                r#"{"find": string, "replace": string} | {"after"|"before": string, "insert": string}, "occurrence"?: n (1-based, when the quote appears more than once), "provider"?: "claude" (default) | "codex""#,
             )
             .pure(),
         CommandSpec::new("suggest.list", "List Suggestions", "Review › Companion", list).pure(),
@@ -165,6 +165,12 @@ fn shift_selection(s: &mut Session, block: usize, at: usize, removed: usize, add
 }
 
 fn add(s: &mut Session, v: &Value) -> CmdResult {
+    let author = match v.get("provider") {
+        None | Some(Value::Null) => AUTHOR,
+        Some(Value::String(p)) if p == "claude" => AUTHOR,
+        Some(Value::String(p)) if p == "codex" => CODEX_AUTHOR,
+        _ => return Err(CmdError::Params("`provider` must be claude or codex".into())),
+    };
     if s.doc.settings.protection.is_some() {
         return Err(CmdError::Disabled("suggest.add: the document is protected".into()));
     }
@@ -217,13 +223,13 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
     let before = s.doc.clone();
     let mut id = u32::try_from(s.doc.revisions.len()).map_err(|_| CmdError::Failed("too many revisions".into()))?;
     let del = if mode == Mode::Replace {
-        s.doc.revisions.push(Revision::new(RevisionKind::Delete, AUTHOR, date.clone()));
+        s.doc.revisions.push(Revision::new(RevisionKind::Delete, author, date.clone()));
         Some(id)
     } else {
         None
     };
     let ins = id + u32::from(del.is_some());
-    s.doc.revisions.push(Revision::new(RevisionKind::Insert, AUTHOR, date));
+    s.doc.revisions.push(Revision::new(RevisionKind::Insert, author, date));
     id = del.unwrap_or(ins);
     let edited = (|| -> Result<usize, CmdError> {
         let para = s.doc.para_mut(StoryRef::Body, &Path::top(block))?;
@@ -505,5 +511,32 @@ mod tests {
         let sp = spans(&back);
         assert_eq!(sp.len(), 1);
         assert_eq!(sp[0].text, "constructs");
+    }
+
+    #[test]
+    fn codex_suggestions_keep_their_author_and_accept_reject_behavior_after_reopen() {
+        for command in ["suggest.accept", "suggest.reject", "suggest.withdraw"] {
+            let mut s = session("The state builds them.");
+            s.run("suggest.add", &json!({"find": "builds", "replace": "constructs", "provider": "codex"})).unwrap();
+            assert_eq!(shown(&mut s, 0), "The state constructs them.");
+            let bytes = wordcraft_docx::write(&s.doc).unwrap();
+            let back = wordcraft_docx::read(&bytes).unwrap();
+            assert!(back.revisions.iter().any(|r| r.author == CODEX_AUTHOR));
+            let mut reopened = Session::new(back);
+            assert_eq!(spans(&reopened.doc).len(), 1);
+            reopened.run(command, &json!({"all": true})).unwrap();
+            assert!(spans(&reopened.doc).is_empty());
+            assert_eq!(plain(&reopened, 0), if command == "suggest.accept" { "The state constructs them." } else { "The state builds them." });
+        }
+    }
+
+    #[test]
+    fn invalid_providers_do_not_change_the_document() {
+        for provider in [json!("other"), json!(42), json!({})] {
+            let mut s = session("The state builds them.");
+            assert!(s.run("suggest.add", &json!({"find": "builds", "replace": "constructs", "provider": provider})).is_err());
+            assert_eq!(plain(&s, 0), "The state builds them.");
+            assert!(s.doc.revisions.is_empty());
+        }
     }
 }

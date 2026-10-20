@@ -146,6 +146,24 @@ wordcraft-cli run --script job.json                 # the same from a file: comm
 
 Web: `cd apps/wordcraft-web && trunk serve`, then open <http://127.0.0.1:8771/?sample>.
 
+## Ghostwriter continuous writing companion
+
+This fork adds orange inline suggestions that you accept or reject while writing. The
+companion can use **Codex CLI** (`--provider codex`) or **Claude Code** (the default), through
+your existing login. See [the setup guide](docs/companion.md), including macOS instructions.
+
+```sh
+cargo build --release -p wordcraft -p wordcraft-companion
+./target/release/wordcraft --control 7981
+# In a second terminal, after signing in with `codex login`:
+./target/release/wordcraft-companion --provider codex --review-existing
+```
+
+The app occupies the first terminal. Keep both programs running; the companion watches for
+pauses and posts suggestions into the document. No interactive AI chat or MCP registration is
+needed for this mode. For AI clients offering suggestions on request, see the
+[Ghostwriter skill](skills/ghostwriter/SKILL.md).
+
 ## For agents: CLI and MCP
 
 WordCraft was designed to be driven by people *and* by AI agents.

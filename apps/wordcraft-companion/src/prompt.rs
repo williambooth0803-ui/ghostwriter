@@ -1,4 +1,4 @@
-//! What Claude is asked, and reading its answer.
+//! What the writing assistant is asked, and reading its answer.
 
 use serde_json::Value;
 
@@ -73,7 +73,7 @@ pub fn build(ctx: &Context, target: usize, m: &Material) -> Option<String> {
     Some(p)
 }
 
-/// One edit Claude proposes: `suggest.add` parameters, and why.
+/// One edit the assistant proposes: `suggest.add` parameters, and why.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Proposal {
     pub params: Value,

@@ -148,7 +148,8 @@ Web: `cd apps/wordcraft-web && trunk serve`, then open <http://127.0.0.1:8771/?s
 
 ## Ghostwriter continuous writing companion
 
-This fork adds orange inline suggestions that you accept or reject while writing. The
+This fork adds study cards, quiet hover notes, persistent information history, and optional
+orange inline edits while writing. The
 companion can use **Codex CLI** (`--provider codex`) or **Claude Code** (the default), through
 your existing login. See [the setup guide](docs/companion.md), including macOS instructions.
 
@@ -160,9 +161,17 @@ cargo build --release -p wordcraft -p wordcraft-companion
 ```
 
 The app occupies the first terminal. Keep both programs running; the companion watches for
-pauses and posts suggestions into the document. No interactive AI chat or MCP registration is
+pauses and offers information without rewriting your notes. No interactive AI chat or MCP registration is
 needed for this mode. For AI clients offering suggestions on request, see the
 [Ghostwriter skill](skills/ghostwriter/SKILL.md).
+
+### Study notes with Codex
+
+The companion now defaults to study mode: independent question answers, vocabulary help and
+additional context appear in hover cards without rewriting your notes. Study Notes keeps dismissed
+information. Add `--research` for Codex web search and `--brief docs/briefs/study.md` for the detailed
+study brief; use `--mode edit` for the earlier orange inline-edit workflow. See
+[the study-mode guide](docs/companion.md#study-mode-answers-and-information-without-rewriting).
 
 ## For agents: CLI and MCP
 

@@ -316,3 +316,8 @@ can be used without committing Word output.
 | 2026-10-10 | minor | Stage checked against the core-workflow alpha gate: passes, stays alpha |
 | 2026-10-10 | major | Created from ROADMAP.md's "Parity by area" and "Estimate to 100%" sections; full re-measure against Word for Mac 16.113.4 (bundle listing, catalog diff from source, issue tracker); split into feature depth (67%) and ready for real work (60%); added proofing, East Asian, accessibility areas and the dimension table; hours re-calibrated from PR history |
 | 2026-10-06 | major | First estimate in ROADMAP.md: ~62% real feature parity, 120–150 h to 100% |
+
+### Fork update — 2026-10-20
+
+Study companion: separate answers per explicit question, quiet hover notes, preserved dismissed
+information and an adaptive study brief. Codex research is optional. See the companion guide.

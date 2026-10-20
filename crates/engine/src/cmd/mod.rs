@@ -37,6 +37,7 @@ pub mod references;
 pub mod review;
 pub mod smart_art;
 pub mod speech;
+pub mod study;
 pub mod suggest; // companion hook
 pub mod table;
 pub mod table_draw;
@@ -102,6 +103,7 @@ pub fn registry() -> Registry {
     v.extend(speech::specs());
     v.extend(controls::specs());
     v.extend(suggest::specs()); // companion hook
+    v.extend(study::specs());
     Registry::new(v)
 }
 

@@ -14,11 +14,14 @@ pub struct Codex {
     pub model: Option<String>,
     pub extra: Vec<String>,
     pub timeout: Duration,
+    pub research: bool,
 }
 
 const SCHEMA: &str = r#"{
   "type": "object", "additionalProperties": false, "required": ["suggestions"],
   "properties": {"suggestions": {"type": "array", "items": {"anyOf": [
+    {"type":"object","additionalProperties":false,"required":["anchor","information","kind","why"],
+     "properties":{"anchor":{"type":"string"},"information":{"type":"string"},"kind":{"type":"string","enum":["answer","context","fact-check","vocabulary"]},"why":{"type":"string"}}},
     {"type": "object", "additionalProperties": false, "required": ["find", "replace", "why"],
      "properties": {"find": {"type": "string"}, "replace": {"type": "string"}, "why": {"type": "string"}}},
     {"type": "object", "additionalProperties": false, "required": ["after", "insert", "why"],
@@ -39,7 +42,7 @@ impl Codex {
                 "-c",
                 "features.apps=false",
                 "-c",
-                "web_search=\"disabled\"",
+                if self.research { "web_search=\"live\"" } else { "web_search=\"disabled\"" },
                 "-c",
                 "project_doc_max_bytes=0",
             ])
@@ -155,7 +158,7 @@ pub(crate) mod tests {
     use super::*;
 
     fn codex() -> Codex {
-        Codex { program: "codex".into(), model: None, extra: vec![], timeout: Duration::from_secs(2) }
+        Codex { program: "codex".into(), model: None, extra: vec![], timeout: Duration::from_secs(2), research: false }
     }
 
     // Fake executables exercise the real process protocol, without a login, network or billing.

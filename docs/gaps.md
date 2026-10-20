@@ -262,3 +262,8 @@ Footer page-table height and body wrapping are corrected. Other pagination gaps 
 | 2026-10-12 | trivial | #21: .xls workbooks and GBK/Big5/Shift_JIS/UTF-16 text lists as recipients; Filter and Sort in Edit Recipient List (#778) |
 | 2026-10-12 | trivial | #811: large-table scrolling fixed; performance gap (#20) narrowed |
 | 2026-10-12 | trivial | #13: radar, stock and other undrawn chart types show a placeholder instead of blank space (#998) |
+
+### Fork update — 2026-10-20
+
+Study companion: separate answers per explicit question, quiet hover notes, preserved dismissed
+information and an adaptive study brief. Codex research is optional. See the companion guide.

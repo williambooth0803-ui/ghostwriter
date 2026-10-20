@@ -83,3 +83,16 @@ writer just rejected.
 
 Finish with one line on what you suggested and why. Don't repeat the suggestions back in chat:
 the writer reads them in the page.
+
+## Study companion (2026-10-20)
+
+The continuous companion defaults to `--mode study`: do not rewrite study notes. `study.add`
+posts an independent information card (`anchor`, `information`, `kind`, optional `block` and
+`provider`). Use kinds `answer`, `context`, `fact-check`, `vocabulary`. Answer each explicit
+question independently, including short questions; preserve the question. `study.keep`,
+`study.dismiss`, `study.insert` and `study.reask` take a note `id`. `study.list` includes history;
+`view.studyNotes` opens it in the app. Dismissal preserves the information in the DOCX.
+`suggest.footnote` converts an inline proposal to a quiet hover note; rejection also retains
+its wording in history. `--mode edit` selects inline rewrites. Codex `--research` enables live
+web search; without it factual checks are model knowledge, not independent verification.
+The detailed editable brief is `docs/briefs/study.md`.

@@ -15,11 +15,15 @@ pub struct Block {
     pub style: Option<String>,
     /// Suggestions already waiting in it.
     pub suggestions: usize,
+    pub answered: Vec<String>,
+    pub recheck: bool,
 }
 
 /// The document as the companion sees it.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Context {
+    pub document_id: Option<u64>,
+    pub study_supported: bool,
     pub blocks: Vec<Block>,
     /// The body paragraph the caret is in.
     pub caret: Option<usize>,
@@ -37,6 +41,12 @@ impl Context {
                             index: usize::try_from(b.get("index")?.as_u64()?).ok()?,
                             text: b.get("text")?.as_str()?.to_string(),
                             style: b.get("style").and_then(Value::as_str).map(str::to_string),
+                            recheck: b.get("recheck").and_then(Value::as_bool).unwrap_or(false),
+                            answered: b
+                                .get("answered")
+                                .and_then(Value::as_array)
+                                .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
+                                .unwrap_or_default(),
                             suggestions: b.get("suggestions").and_then(Value::as_u64).and_then(|n| usize::try_from(n).ok()).unwrap_or(0),
                         })
                     })
@@ -44,7 +54,12 @@ impl Context {
             })
             .unwrap_or_default();
         let caret = v.get("caret").and_then(|c| c.get("block")).and_then(Value::as_u64).and_then(|n| usize::try_from(n).ok());
-        Context { blocks, caret }
+        Context {
+            blocks,
+            caret,
+            document_id: v.get("documentId").and_then(Value::as_u64),
+            study_supported: v.get("study").and_then(Value::as_bool).unwrap_or(false),
+        }
     }
 
     pub fn block(&self, index: usize) -> Option<&Block> {
@@ -67,6 +82,7 @@ fn is_heading(b: &Block) -> bool {
 }
 
 pub struct Settings {
+    pub study: bool,
     /// How long the document must stay unchanged before asking.
     pub idle: Duration,
     /// Paragraphs shorter than this (in words) are left alone.
@@ -76,9 +92,11 @@ pub struct Settings {
 }
 
 pub struct Watch {
+    document_id: Option<u64>,
     settings: Settings,
     /// Paragraph texts already looked at (or written by the companion).
     reviewed: HashSet<u64>,
+    initial: HashSet<u64>,
     /// The texts at the last look, by paragraph index.
     last: HashMap<usize, u64>,
     last_change: Option<Instant>,
@@ -86,13 +104,15 @@ pub struct Watch {
 
 impl Watch {
     pub fn new(settings: Settings) -> Watch {
-        Watch { settings, reviewed: HashSet::new(), last: HashMap::new(), last_change: None }
+        Watch { document_id: None, settings, reviewed: HashSet::new(), initial: HashSet::new(), last: HashMap::new(), last_change: None }
     }
 
     /// Count every paragraph as looked at (on start, unless existing text should be reviewed).
     pub fn mark_all(&mut self, ctx: &Context) {
+        self.document_id = ctx.document_id;
         for b in &ctx.blocks {
             self.reviewed.insert(text_hash(&b.text));
+            self.initial.insert(text_hash(&b.text));
         }
     }
 
@@ -100,8 +120,19 @@ impl Watch {
         self.reviewed.insert(text_hash(text));
     }
 
+    pub fn forget(&mut self, text: &str) {
+        self.reviewed.remove(&text_hash(text));
+    }
+
     /// Take a new look at the document. Returns the paragraph to ask about, if it's time.
     pub fn observe(&mut self, ctx: &Context, now: Instant) -> Option<usize> {
+        if self.document_id.is_some() && self.document_id != ctx.document_id {
+            self.reviewed.clear();
+            self.initial.clear();
+            self.last.clear();
+            self.last_change = None;
+        }
+        self.document_id = ctx.document_id;
         let current: HashMap<usize, u64> = ctx.blocks.iter().map(|b| (b.index, text_hash(&b.text))).collect();
         if current != self.last {
             self.last = current;
@@ -116,9 +147,14 @@ impl Watch {
         let mut candidates: Vec<&Block> = ctx
             .blocks
             .iter()
-            .filter(|b| b.suggestions == 0 && !is_heading(b))
-            .filter(|b| b.text.split_whitespace().count() >= self.settings.min_words)
-            .filter(|b| !self.reviewed.contains(&text_hash(&b.text)))
+            .filter(|b| (self.settings.study || b.suggestions == 0) && (!is_heading(b) || !crate::prompt::questions(&b.text).is_empty()))
+            .filter(|b| b.text.split_whitespace().count() >= self.settings.min_words || !crate::prompt::questions(&b.text).is_empty())
+            .filter(|b| {
+                !self.reviewed.contains(&text_hash(&b.text))
+                    || (self.settings.study
+                        && (!self.initial.contains(&text_hash(&b.text)) || b.recheck)
+                        && crate::prompt::questions(&b.text).iter().any(|q| !b.answered.iter().any(|a| a == q)))
+            })
             .filter(|b| self.settings.reach.is_none_or(|r| b.index.abs_diff(caret) <= r))
             .collect();
         // The caret's paragraph first, then those just above it (what was just written).
@@ -139,9 +175,17 @@ mod tests {
             blocks: texts
                 .iter()
                 .enumerate()
-                .map(|(i, t)| Block { index: i, text: (*t).to_string(), style: (i == 0).then(|| "Heading1".to_string()), suggestions: 0 })
+                .map(|(i, t)| Block {
+                    index: i,
+                    text: (*t).to_string(),
+                    style: (i == 0).then(|| "Heading1".to_string()),
+                    suggestions: 0,
+                    answered: vec![],
+                    recheck: false,
+                })
                 .collect(),
             caret: Some(caret),
+            ..Default::default()
         }
     }
 
@@ -149,7 +193,7 @@ mod tests {
 
     #[test]
     fn asks_after_a_pause_about_the_caret_paragraph_once() {
-        let mut w = Watch::new(Settings { idle: Duration::from_secs(3), min_words: 5, reach: Some(3) });
+        let mut w = Watch::new(Settings { study: false, idle: Duration::from_secs(3), min_words: 5, reach: Some(3) });
         let t0 = Instant::now();
         let c = ctx(&["Title words here and more", LONG, "Short one."], 1);
         assert_eq!(w.observe(&c, t0), None, "a change starts the wait");
@@ -160,7 +204,7 @@ mod tests {
 
     #[test]
     fn typing_restarts_the_wait_and_existing_text_can_be_skipped() {
-        let mut w = Watch::new(Settings { idle: Duration::from_secs(3), min_words: 5, reach: None });
+        let mut w = Watch::new(Settings { study: false, idle: Duration::from_secs(3), min_words: 5, reach: None });
         let t0 = Instant::now();
         let c = ctx(&["Heading", LONG], 1);
         w.mark_all(&c);
@@ -178,5 +222,42 @@ mod tests {
         let c = Context::from_json(&v);
         assert_eq!(c.caret, Some(2));
         assert_eq!(c.block(2).map(|b| b.suggestions), Some(1));
+    }
+}
+
+#[cfg(test)]
+mod rejection_tests {
+    use super::*;
+    #[test]
+    fn dismissing_one_answer_does_not_stall_the_other_question() {
+        let mut w = Watch::new(Settings { study: true, idle: Duration::from_secs(1), min_words: 8, reach: None });
+        let now = Instant::now();
+        let mut c = Context::from_json(
+            &serde_json::json!({"blocks":[{"index":0,"text":"Why? What?","suggestions":1,"answered":["Why?"]}],"caret":{"block":0}}),
+        );
+        assert_eq!(w.observe(&c, now), None);
+        w.mark("Why? What?"); // This text was already reviewed before rejection.
+        assert_eq!(w.observe(&c, now + Duration::from_secs(2)), Some(0));
+        c.blocks[0].answered.push("What?".into());
+        assert_eq!(w.observe(&c, now + Duration::from_secs(3)), None, "do not keep repeating dismissed answers");
+        c.blocks[0].answered.pop();
+        assert_eq!(w.observe(&c, now + Duration::from_secs(4)), Some(0), "an explicit recheck is eligible");
+    }
+}
+
+#[cfg(test)]
+mod document_tests {
+    use super::*;
+    #[test]
+    fn opening_another_document_does_not_inherit_reviewed_state() {
+        let mut w = Watch::new(Settings { study: true, idle: Duration::from_secs(1), min_words: 8, reach: None });
+        let mut c = Context::from_json(&serde_json::json!({"documentId":1,"blocks":[{"index":0,"text":"Why?"}],"caret":{"block":0}}));
+        w.mark_all(&c);
+        let now = Instant::now();
+        w.observe(&c, now);
+        assert_eq!(w.observe(&c, now + Duration::from_secs(2)), None);
+        c.document_id = Some(2);
+        assert_eq!(w.observe(&c, now + Duration::from_secs(3)), None);
+        assert_eq!(w.observe(&c, now + Duration::from_secs(5)), Some(0));
     }
 }

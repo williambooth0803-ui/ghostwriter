@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 publish = false
-description = "Fork addition: watches the running WordCraft window and posts Claude's inline suggestions as you write"
+description = "Fork addition: watches the running WordCraft window and posts Codex or Claude inline suggestions as you write"
 
 [[bin]]
 name = "wordcraft-companion"

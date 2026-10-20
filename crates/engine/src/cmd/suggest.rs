@@ -10,7 +10,7 @@
 
 use serde_json::{Value, json};
 use wordcraft_doc::para::OBJ;
-use wordcraft_doc::suggest::{AUTHOR, is_suggestion};
+use wordcraft_doc::suggest::{AUTHOR, CODEX_AUTHOR, is_suggestion};
 use wordcraft_doc::{Block, Document, Path, Pos, Revision, RevisionKind, StoryRef};
 
 use crate::{CmdError, CmdResult, CommandSpec, Session};
@@ -22,7 +22,7 @@ pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("suggest.add", "Add Suggestion", "Review › Companion", add)
             .params(
-                r#"{"find": string, "replace": string} | {"after"|"before": string, "insert": string}, "occurrence"?: n (1-based, when the quote appears more than once)"#,
+                r#"{"find": string, "replace": string} | {"after"|"before": string, "insert": string}, "occurrence"?: n (1-based, when the quote appears more than once), "provider"?: "claude" (default) | "codex""#,
             )
             .pure(),
         CommandSpec::new("suggest.list", "List Suggestions", "Review › Companion", list).pure(),
@@ -33,6 +33,11 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("suggest.reject", "Reject Suggestion", "Review › Companion", |s, v| resolve(s, v, Some(false)))
             .key("Alt+Shift+Backspace")
             .params(r#"{"id"?: n, "all"?: bool} (without either: the suggestion at the caret)"#),
+        CommandSpec::new("suggest.footnote", "Keep Suggestion as Hover Note", "Review › Companion", |s, v| {
+            let mut v = v.clone();
+            if let Some(o) = v.as_object_mut() { o.insert("keepNote".into(), json!(true)); }
+            resolve(s, &v, Some(false))
+        }).params(r#"{"id"?: n, "all"?: bool}"#),
         CommandSpec::new("suggest.withdraw", "Withdraw Suggestion", "Review › Companion", |s, v| resolve(s, v, None))
             .params(r#"{"id"?: n, "all"?: bool}"#)
             .pure(),
@@ -67,8 +72,22 @@ pub fn spans(doc: &Document) -> Vec<Span> {
                 out.extend(open.take());
                 continue;
             };
+            // The deletion/insertion pair shares one proposal. A later revision starts a
+            // separate proposal even when its text directly touches the previous one.
+            let base = if ins.is_some()
+                && rev > 0
+                && doc.revisions.get((rev - 1) as usize).is_some_and(|r| {
+                    r.kind == RevisionKind::Delete && doc.revisions.get(rev as usize).is_some_and(|i| i.author == r.author && i.date == r.date)
+                }) {
+                rev - 1
+            } else {
+                rev
+            };
+            if open.as_ref().is_some_and(|sp| sp.id != base) {
+                out.extend(open.take());
+            }
             let span =
-                open.get_or_insert_with(|| Span { id: rev, block, start: r.start, end: r.start, text: String::new(), replaces: String::new() });
+                open.get_or_insert_with(|| Span { id: base, block, start: r.start, end: r.start, text: String::new(), replaces: String::new() });
             span.id = span.id.min(rev);
             span.end = r.end;
             if del.is_some() {
@@ -95,6 +114,7 @@ fn list(s: &mut Session, _: &Value) -> CmdResult {
 fn context(s: &mut Session, _: &Value) -> CmdResult {
     let doc = &s.doc;
     let counts = spans(doc);
+    let notes = super::study::notes(doc);
     let blocks: Vec<Value> = doc
         .body
         .iter()
@@ -109,12 +129,24 @@ fn context(s: &mut Session, _: &Value) -> CmdResult {
                 .filter(|c| *c != OBJ)
                 .collect();
             let n = counts.iter().filter(|sp| sp.block == i).count();
-            Some(json!({"index": i, "text": text, "style": p.props.style, "suggestions": n}))
+            let located: Vec<_> = notes
+                .iter()
+                .filter(|note| {
+                    (note.block == Some(i) && note.paragraph == text) || super::study::anchor(doc, note).is_some_and(|(a, _)| a.path == Path::top(i))
+                })
+                .collect();
+            let queued: Vec<_> = located.iter().filter(|n| n.kind == "answer" && n.status == "queued").map(|n| n.quote.as_str()).collect();
+            let answered: Vec<_> = located
+                .iter()
+                .filter(|n| n.kind == "answer" && n.status != "queued" && !queued.contains(&n.quote.as_str()))
+                .map(|n| n.quote.as_str())
+                .collect();
+            Some(json!({"index": i, "text": text, "style": p.props.style, "suggestions": n, "answered":answered, "recheck":!queued.is_empty()}))
         })
         .collect();
     let f = &s.sel.focus;
     let caret = (f.story == StoryRef::Body && f.path.0.len() == 1).then(|| json!({"block": f.path.0.first(), "off": f.off}));
-    Ok(json!({"blocks": blocks, "caret": caret}))
+    Ok(json!({"blocks": blocks, "caret": caret, "documentId":s.document_id(), "study":true}))
 }
 
 fn text_param<'a>(v: &'a Value, key: &str) -> Result<Option<&'a str>, CmdError> {
@@ -153,7 +185,7 @@ fn caret_within(s: &Session, block: usize, lo: usize, hi: usize) -> bool {
 /// Shift the selection's ends in body paragraph `block` by an edit at `at` that removed `removed`
 /// bytes and then added `added`. An end right at `at` stays before removed text but goes past
 /// added text, so the writer types on after a suggestion that lands at the caret.
-fn shift_selection(s: &mut Session, block: usize, at: usize, removed: usize, added: usize) {
+pub(super) fn shift_selection(s: &mut Session, block: usize, at: usize, removed: usize, added: usize) {
     let path = Path::top(block);
     let fix = |p: &mut Pos| {
         if p.story == StoryRef::Body && p.path == path && (p.off > at || (p.off == at && added > 0)) {
@@ -165,6 +197,12 @@ fn shift_selection(s: &mut Session, block: usize, at: usize, removed: usize, add
 }
 
 fn add(s: &mut Session, v: &Value) -> CmdResult {
+    let author = match v.get("provider") {
+        None | Some(Value::Null) => AUTHOR,
+        Some(Value::String(p)) if p == "claude" => AUTHOR,
+        Some(Value::String(p)) if p == "codex" => CODEX_AUTHOR,
+        _ => return Err(CmdError::Params("`provider` must be claude or codex".into())),
+    };
     if s.doc.settings.protection.is_some() {
         return Err(CmdError::Disabled("suggest.add: the document is protected".into()));
     }
@@ -181,7 +219,11 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
     if new.contains(['\n', '\r', '\u{2029}', '\u{000B}']) {
         return Err(CmdError::Params("a suggestion stays within one paragraph: no line breaks".into()));
     }
-    let found = find_quote(&s.doc, quote);
+    let mut found = find_quote(&s.doc, quote);
+    if let Some(block) = v.get("block") {
+        let block = block.as_u64().and_then(|n| usize::try_from(n).ok()).ok_or_else(|| CmdError::Params("invalid block".into()))?;
+        found.retain(|(i, _)| *i == block);
+    }
     let pick = match v.get("occurrence").and_then(Value::as_u64) {
         Some(n) if n >= 1 => found.get(usize::try_from(n - 1).unwrap_or(usize::MAX)).copied(),
         _ if found.len() > 1 => {
@@ -217,13 +259,13 @@ fn add(s: &mut Session, v: &Value) -> CmdResult {
     let before = s.doc.clone();
     let mut id = u32::try_from(s.doc.revisions.len()).map_err(|_| CmdError::Failed("too many revisions".into()))?;
     let del = if mode == Mode::Replace {
-        s.doc.revisions.push(Revision::new(RevisionKind::Delete, AUTHOR, date.clone()));
+        s.doc.revisions.push(Revision::new(RevisionKind::Delete, author, date.clone()));
         Some(id)
     } else {
         None
     };
     let ins = id + u32::from(del.is_some());
-    s.doc.revisions.push(Revision::new(RevisionKind::Insert, AUTHOR, date));
+    s.doc.revisions.push(Revision::new(RevisionKind::Insert, author, date));
     id = del.unwrap_or(ins);
     let edited = (|| -> Result<usize, CmdError> {
         let para = s.doc.para_mut(StoryRef::Body, &Path::top(block))?;
@@ -311,6 +353,20 @@ fn resolve(s: &mut Session, v: &Value, accept: Option<bool>) -> CmdResult {
     let sel = s.sel.clone();
     // Last first, so the offsets of the earlier ones still hold.
     for sp in picked.iter().rev() {
+        if accept.is_some() {
+            let status = if keep_new {
+                "inserted"
+            } else if v.get("keepNote").and_then(Value::as_bool) == Some(true) {
+                "kept"
+            } else {
+                "dismissed"
+            };
+            if let Err(e) = archive_span(s, sp, status) {
+                s.doc = before;
+                s.sel = sel;
+                return Err(e);
+            }
+        }
         if let Err(e) = resolve_span(s, sp, keep_new) {
             s.doc = before;
             s.sel = sel;
@@ -321,6 +377,34 @@ fn resolve(s: &mut Session, v: &Value, accept: Option<bool>) -> CmdResult {
         s.touch();
     }
     Ok(json!({"resolved": picked.iter().map(|sp| sp.id).collect::<Vec<_>>()}))
+}
+
+/// Also called by ordinary Review-tab accept/reject commands.
+pub(super) fn archive_span(s: &mut Session, sp: &Span, status: &str) -> Result<(), CmdError> {
+    if sp.text.is_empty() {
+        return Ok(());
+    }
+    let p = s.doc.para(StoryRef::Body, &Path::top(sp.block)).ok_or_else(|| CmdError::Failed("paragraph is gone".into()))?;
+    let paragraph: String = p
+        .run_ranges()
+        .filter(|(_, c)| !is_suggestion(&s.doc, c.ins))
+        .filter_map(|(r, _)| p.text.get(r))
+        .flat_map(str::chars)
+        .filter(|c| *c != OBJ)
+        .collect();
+    let quote = if sp.replaces.is_empty() { paragraph.clone() } else { sp.replaces.clone() };
+    let provider = s.doc.revisions.get(sp.id as usize).map(|r| if r.author == CODEX_AUTHOR { "codex" } else { "claude" }).unwrap_or("codex");
+    let note = super::study::Note {
+        id: 0,
+        block: Some(sp.block),
+        status: status.into(),
+        kind: "context".into(),
+        quote,
+        paragraph,
+        information: sp.text.clone(),
+    };
+    super::study::record(s, note, provider)?;
+    Ok(())
 }
 
 fn resolve_span(s: &mut Session, sp: &Span, keep_new: bool) -> Result<(), CmdError> {
@@ -505,5 +589,51 @@ mod tests {
         let sp = spans(&back);
         assert_eq!(sp.len(), 1);
         assert_eq!(sp[0].text, "constructs");
+    }
+
+    #[test]
+    fn codex_suggestions_keep_their_author_and_accept_reject_behavior_after_reopen() {
+        for command in ["suggest.accept", "suggest.reject", "suggest.withdraw"] {
+            let mut s = session("The state builds them.");
+            s.run("suggest.add", &json!({"find": "builds", "replace": "constructs", "provider": "codex"})).unwrap();
+            assert_eq!(shown(&mut s, 0), "The state constructs them.");
+            let bytes = wordcraft_docx::write(&s.doc).unwrap();
+            let back = wordcraft_docx::read(&bytes).unwrap();
+            assert!(back.revisions.iter().any(|r| r.author == CODEX_AUTHOR));
+            let mut reopened = Session::new(back);
+            assert_eq!(spans(&reopened.doc).len(), 1);
+            reopened.run(command, &json!({"all": true})).unwrap();
+            assert!(spans(&reopened.doc).is_empty());
+            assert_eq!(plain(&reopened, 0), if command == "suggest.accept" { "The state constructs them." } else { "The state builds them." });
+        }
+    }
+
+    #[test]
+    fn invalid_providers_do_not_change_the_document() {
+        for provider in [json!("other"), json!(42), json!({})] {
+            let mut s = session("The state builds them.");
+            assert!(s.run("suggest.add", &json!({"find": "builds", "replace": "constructs", "provider": provider})).is_err());
+            assert_eq!(plain(&s, 0), "The state builds them.");
+            assert!(s.doc.revisions.is_empty());
+        }
+    }
+}
+
+#[cfg(test)]
+mod adjacent_tests {
+    use super::*;
+    #[test]
+    fn adjacent_proposals_keep_separate_controls_and_ribbon_rejection_keeps_history() {
+        let mut s = Session::new(Document::from_text("Why?"));
+        s.run("caret.docEnd", &json!({})).unwrap();
+        let a = s.run("suggest.add", &json!({"after":"Why?","insert":" First."})).unwrap();
+        s.run("suggest.add", &json!({"after":"Why?","insert":" Second."})).unwrap();
+        assert_eq!(spans(&s.doc).len(), 2);
+        s.run("suggest.reject", &a).unwrap();
+        assert_eq!(spans(&s.doc).len(), 1);
+        s.run("review.rejectAll", &json!({})).unwrap();
+        assert!(spans(&s.doc).is_empty());
+        assert_eq!(s.doc.plain_text(StoryRef::Body), "Why?");
+        assert_eq!(super::super::study::notes(&s.doc).len(), 2);
     }
 }

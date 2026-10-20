@@ -54,7 +54,7 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
     let font = regular(12.0);
     let note = (!sp.replaces.is_empty()).then(|| format!("replaces “{}”", shorten(&sp.replaces, 60)));
     let note_w = note.as_ref().map_or(0.0, |n| ctx.fonts_mut(|f| f.layout_no_wrap(n.clone(), font.clone(), t.text_dim).size().x) + 10.0);
-    let size = vec2(2.0 * 26.0 + 8.0 + note_w, 30.0);
+    let size = vec2(3.0 * 26.0 + 8.0 + note_w, 30.0);
     // Above the line, or below it at the top of the view.
     let mut origin = pos2(top_left.x - 4.0, top_left.y - size.y - 4.0);
     if origin.y < area.top() {
@@ -72,6 +72,7 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
         for (name, cmd, tip, color) in [
             ("check", "suggest.accept", "Accept suggestion (Alt+Shift+Enter)", t.green),
             ("close", "suggest.reject", "Reject suggestion (Alt+Shift+Backspace)", t.red),
+            ("comment", "suggest.footnote", "Keep as a hover note; preserve my wording", t.text_dim),
         ] {
             let b = Rect::from_min_size(pos2(x, rect.top() + 3.0), vec2(24.0, 24.0));
             let resp = ui.interact(b, Id::new(("companion_btn", name)), Sense::click()).on_hover_text(tip);

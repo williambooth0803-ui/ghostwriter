@@ -222,3 +222,159 @@ bg	Ghostwriter	Ghostwriter
 vi	Ghostwriter	Ghostwriter
 sv	Ghostwriter	Ghostwriter
 hr	Ghostwriter	Ghostwriter
+
+# Study companion commands (2026-10-20).
+zh-hans	Keep Suggestion as Hover Note	将建议保留为悬停注释
+zh-hans	Add Study Information	添加学习信息
+zh-hans	Study Notes and History	学习笔记与历史记录
+zh-hans	Keep as Hover Note	保留为悬停注释
+zh-hans	Dismiss and Keep in History	关闭并保留在历史记录中
+zh-hans	Insert Study Information	插入学习信息
+zh-hans	Ask About This Again	再次询问此内容
+zh-hant	Keep Suggestion as Hover Note	將建議保留為懸停註解
+zh-hant	Add Study Information	新增學習資訊
+zh-hant	Study Notes and History	學習筆記與歷史記錄
+zh-hant	Keep as Hover Note	保留為懸停註解
+zh-hant	Dismiss and Keep in History	關閉並保留在歷史記錄中
+zh-hant	Insert Study Information	插入學習資訊
+zh-hant	Ask About This Again	再次詢問此內容
+ja	Keep Suggestion as Hover Note	提案をホバーノートとして保存
+ja	Add Study Information	学習情報を追加
+ja	Study Notes and History	学習ノートと履歴
+ja	Keep as Hover Note	ホバーノートとして保存
+ja	Dismiss and Keep in History	閉じて履歴に保存
+ja	Insert Study Information	学習情報を挿入
+ja	Ask About This Again	これについてもう一度質問
+ko	Keep Suggestion as Hover Note	제안을 호버 메모로 보관
+ko	Add Study Information	학습 정보 추가
+ko	Study Notes and History	학습 메모 및 기록
+ko	Keep as Hover Note	호버 메모로 보관
+ko	Dismiss and Keep in History	닫고 기록에 보관
+ko	Insert Study Information	학습 정보 삽입
+ko	Ask About This Again	다시 질문하기
+uk	Keep Suggestion as Hover Note	Зберегти пропозицію як примітку при наведенні
+uk	Add Study Information	Додати навчальну інформацію
+uk	Study Notes and History	Навчальні нотатки та історія
+uk	Keep as Hover Note	Зберегти як примітку при наведенні
+uk	Dismiss and Keep in History	Відхилити й зберегти в історії
+uk	Insert Study Information	Вставити навчальну інформацію
+uk	Ask About This Again	Запитати про це ще раз
+es	Keep Suggestion as Hover Note	Guardar sugerencia como nota al pasar el cursor
+es	Add Study Information	Añadir información de estudio
+es	Study Notes and History	Notas de estudio e historial
+es	Keep as Hover Note	Guardar como nota al pasar el cursor
+es	Dismiss and Keep in History	Descartar y guardar en el historial
+es	Insert Study Information	Insertar información de estudio
+es	Ask About This Again	Volver a preguntar sobre esto
+pt-br	Keep Suggestion as Hover Note	Guardar sugestão como nota ao passar o cursor
+pt-br	Add Study Information	Adicionar informações de estudo
+pt-br	Study Notes and History	Notas de estudo e histórico
+pt-br	Keep as Hover Note	Guardar como nota ao passar o cursor
+pt-br	Dismiss and Keep in History	Dispensar e manter no histórico
+pt-br	Insert Study Information	Inserir informações de estudo
+pt-br	Ask About This Again	Perguntar sobre isso novamente
+fr	Keep Suggestion as Hover Note	Conserver la suggestion comme note au survol
+fr	Add Study Information	Ajouter des informations d’étude
+fr	Study Notes and History	Notes d’étude et historique
+fr	Keep as Hover Note	Conserver comme note au survol
+fr	Dismiss and Keep in History	Ignorer et conserver dans l’historique
+fr	Insert Study Information	Insérer des informations d’étude
+fr	Ask About This Again	Poser à nouveau cette question
+de	Keep Suggestion as Hover Note	Vorschlag als Notiz beim Darüberfahren behalten
+de	Add Study Information	Lerninformationen hinzufügen
+de	Study Notes and History	Lernnotizen und Verlauf
+de	Keep as Hover Note	Als Notiz beim Darüberfahren behalten
+de	Dismiss and Keep in History	Verwerfen und im Verlauf behalten
+de	Insert Study Information	Lerninformationen einfügen
+de	Ask About This Again	Erneut danach fragen
+it	Keep Suggestion as Hover Note	Conserva il suggerimento come nota al passaggio del mouse
+it	Add Study Information	Aggiungi informazioni di studio
+it	Study Notes and History	Note di studio e cronologia
+it	Keep as Hover Note	Conserva come nota al passaggio del mouse
+it	Dismiss and Keep in History	Ignora e conserva nella cronologia
+it	Insert Study Information	Inserisci informazioni di studio
+it	Ask About This Again	Chiedi di nuovo
+pl	Keep Suggestion as Hover Note	Zachowaj sugestię jako notatkę po najechaniu
+pl	Add Study Information	Dodaj informacje do nauki
+pl	Study Notes and History	Notatki do nauki i historia
+pl	Keep as Hover Note	Zachowaj jako notatkę po najechaniu
+pl	Dismiss and Keep in History	Odrzuć i zachowaj w historii
+pl	Insert Study Information	Wstaw informacje do nauki
+pl	Ask About This Again	Zapytaj o to ponownie
+ru	Keep Suggestion as Hover Note	Сохранить предложение как заметку при наведении
+ru	Add Study Information	Добавить учебную информацию
+ru	Study Notes and History	Учебные заметки и история
+ru	Keep as Hover Note	Сохранить как заметку при наведении
+ru	Dismiss and Keep in History	Отклонить и сохранить в истории
+ru	Insert Study Information	Вставить учебную информацию
+ru	Ask About This Again	Спросить об этом ещё раз
+tr	Keep Suggestion as Hover Note	Öneriyi üzerine gelindiğinde gösterilen not olarak sakla
+tr	Add Study Information	Çalışma bilgisi ekle
+tr	Study Notes and History	Çalışma notları ve geçmiş
+tr	Keep as Hover Note	Üzerine gelindiğinde gösterilen not olarak sakla
+tr	Dismiss and Keep in History	Kapat ve geçmişte sakla
+tr	Insert Study Information	Çalışma bilgisi yerleştir
+tr	Ask About This Again	Bunu yeniden sor
+sv	Keep Suggestion as Hover Note	Spara förslag som anteckning vid hovring
+sv	Add Study Information	Lägg till studieinformation
+sv	Study Notes and History	Studieanteckningar och historik
+sv	Keep as Hover Note	Spara som anteckning vid hovring
+sv	Dismiss and Keep in History	Avvisa och spara i historiken
+sv	Insert Study Information	Infoga studieinformation
+sv	Ask About This Again	Fråga om detta igen
+cs	Keep Suggestion as Hover Note	Uchovat návrh jako poznámku při najetí
+cs	Add Study Information	Přidat studijní informace
+cs	Study Notes and History	Studijní poznámky a historie
+cs	Keep as Hover Note	Uchovat jako poznámku při najetí
+cs	Dismiss and Keep in History	Odmítnout a uchovat v historii
+cs	Insert Study Information	Vložit studijní informace
+cs	Ask About This Again	Zeptat se na to znovu
+hu	Keep Suggestion as Hover Note	Javaslat megőrzése rámutatáskor megjelenő jegyzetként
+hu	Add Study Information	Tanulási információ hozzáadása
+hu	Study Notes and History	Tanulási jegyzetek és előzmények
+hu	Keep as Hover Note	Megőrzés rámutatáskor megjelenő jegyzetként
+hu	Dismiss and Keep in History	Elvetés és megőrzés az előzményekben
+hu	Insert Study Information	Tanulási információ beszúrása
+hu	Ask About This Again	Rákérdezés újra
+et	Keep Suggestion as Hover Note	Säilita soovitus hõljukmärkmena
+et	Add Study Information	Lisa õppeteavet
+et	Study Notes and History	Õppemärkmed ja ajalugu
+et	Keep as Hover Note	Säilita hõljukmärkmena
+et	Dismiss and Keep in History	Loobu ja säilita ajaloos
+et	Insert Study Information	Lisa õppeteave dokumenti
+et	Ask About This Again	Küsi selle kohta uuesti
+vi	Keep Suggestion as Hover Note	Giữ gợi ý dưới dạng ghi chú khi di chuột
+vi	Add Study Information	Thêm thông tin học tập
+vi	Study Notes and History	Ghi chú học tập và lịch sử
+vi	Keep as Hover Note	Giữ dưới dạng ghi chú khi di chuột
+vi	Dismiss and Keep in History	Bỏ qua và giữ trong lịch sử
+vi	Insert Study Information	Chèn thông tin học tập
+vi	Ask About This Again	Hỏi lại về điều này
+bg	Keep Suggestion as Hover Note	Запазване на предложението като бележка при посочване
+bg	Add Study Information	Добавяне на учебна информация
+bg	Study Notes and History	Учебни бележки и история
+bg	Keep as Hover Note	Запазване като бележка при посочване
+bg	Dismiss and Keep in History	Отхвърляне и запазване в историята
+bg	Insert Study Information	Вмъкване на учебна информация
+bg	Ask About This Again	Повторно питане за това
+hr	Keep Suggestion as Hover Note	Spremi prijedlog kao bilješku pri prelasku mišem
+hr	Add Study Information	Dodaj informacije za učenje
+hr	Study Notes and History	Bilješke za učenje i povijest
+hr	Keep as Hover Note	Spremi kao bilješku pri prelasku mišem
+hr	Dismiss and Keep in History	Odbaci i zadrži u povijesti
+hr	Insert Study Information	Umetni informacije za učenje
+hr	Ask About This Again	Pitaj o tome ponovno
+sr	Keep Suggestion as Hover Note	Сачувај предлог као белешку при преласку мишем
+sr	Add Study Information	Додај информације за учење
+sr	Study Notes and History	Белешке за учење и историја
+sr	Keep as Hover Note	Сачувај као белешку при преласку мишем
+sr	Dismiss and Keep in History	Одбаци и задржи у историји
+sr	Insert Study Information	Уметни информације за учење
+sr	Ask About This Again	Питај о томе поново
+sr-latn	Keep Suggestion as Hover Note	Sačuvaj predlog kao belešku pri prelasku mišem
+sr-latn	Add Study Information	Dodaj informacije za učenje
+sr-latn	Study Notes and History	Beleške za učenje i istorija
+sr-latn	Keep as Hover Note	Sačuvaj kao belešku pri prelasku mišem
+sr-latn	Dismiss and Keep in History	Odbaci i zadrži u istoriji
+sr-latn	Insert Study Information	Umetni informacije za učenje
+sr-latn	Ask About This Again	Pitaj o tome ponovo

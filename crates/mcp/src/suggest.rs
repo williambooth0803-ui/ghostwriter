@@ -5,7 +5,7 @@
 pub const INSTRUCTIONS: &str = "\
 Ghostwriter suggestions: while the writer has the document open, propose edits as suggestions \
 they accept (✓) or reject (✗) instead of changing the text yourself, unless they ask you to edit \
-directly. Flow: (1) execute suggest.context → {blocks:[{index,text,style,suggestions}], \
+directly. Codex clients: add provider:\"codex\" to suggest.add params for Codex revision attribution. Flow: (1) execute suggest.context → {blocks:[{index,text,style,suggestions}], \
 caret:{block,off}}: the body paragraphs as they read with pending suggestions in, and where the \
 writer is. (2) execute suggest.add {find:\"exact words\", replace:\"new words\"}, or \
 {after|before:\"exact words\", insert:\" added words\"} (mind the spaces). Quote the writer's own \

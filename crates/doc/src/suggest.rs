@@ -7,13 +7,15 @@
 use crate::Document;
 use crate::props::Rgb;
 
-/// The author of every suggestion's revisions.
+/// Default author, retained for existing Claude clients and saved documents.
 pub const AUTHOR: &str = "Claude (suggestion)";
+/// Codex suggestions use the same layout and accept/reject handling as Claude suggestions.
+pub const CODEX_AUTHOR: &str = "Codex (suggestion)";
 
 /// The orange behind a suggestion's words.
 pub const FILL: Rgb = Rgb(0xFF, 0xC8, 0x8A);
 
 /// Whether revision `rev` (`None`: no revision) is part of a suggestion.
 pub fn is_suggestion(doc: &Document, rev: Option<u32>) -> bool {
-    rev.and_then(|r| doc.revisions.get(r as usize)).is_some_and(|r| r.author == AUTHOR)
+    rev.and_then(|r| doc.revisions.get(r as usize)).is_some_and(|r| r.author == AUTHOR || r.author == CODEX_AUTHOR)
 }

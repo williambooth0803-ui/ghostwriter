@@ -393,7 +393,11 @@ const FLOAT_WIDTH: f32 = 216.0;
 fn floating_comments(app: &WordApp) -> bool {
     let s = &app.session;
     let m = &s.prefs.markup;
-    s.balloons_shown() && m.comments && m.comment_display == CommentDisplay::Selected && !s.doc.comments.is_empty() && markup_width(app) <= 0.0
+    s.balloons_shown()
+        && m.comments
+        && m.comment_display == CommentDisplay::Selected
+        && s.doc.comments.values().any(|c| !wordcraft_engine::cmd::study::is_note(&s.doc, c))
+        && markup_width(app) <= 0.0
 }
 
 /// The comment shown when only the selected one is: the clicked balloon, else the comment whose
@@ -411,7 +415,9 @@ pub fn markup_width(app: &WordApp) -> f32 {
         return 0.0;
     }
     let m = &s.prefs.markup;
-    let comments = m.comments && !s.doc.comments.is_empty() && m.comment_display == CommentDisplay::Margin;
+    let comments = m.comments
+        && s.doc.comments.values().any(|c| !wordcraft_engine::cmd::study::is_note(&s.doc, c))
+        && m.comment_display == CommentDisplay::Margin;
     let [has_formats, has_moves, has_deletions] = match app.canvas.markup_facts.get() {
         Some((rev, facts)) if rev == (s.document_id(), s.rev()) => facts,
         _ => {

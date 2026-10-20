@@ -10,9 +10,19 @@ hovers one and clicks ✓ or ✗. You use the `ghostwriter` MCP server's `execut
 `suggest.*` commands. Unless the writer asks you to edit directly, suggest instead of editing:
 they stay the author.
 
-If the `ghostwriter` tools are missing, tell the writer to run
-`claude mcp add ghostwriter -- ghostwriter-cli mcp --connect 127.0.0.1:7981` with Ghostwriter
-open, then restart Claude Code.
+For automatic suggestions as the writer types, use the continuous companion described in
+[`docs/companion.md`](../../docs/companion.md): `wordcraft-companion --provider codex` uses
+Codex CLI; `--provider claude` uses Claude Code. It needs the app running with `--control 7981`,
+but no interactive chat or MCP registration.
+
+For suggestions from an interactive Codex session, register the running app once:
+`codex mcp add ghostwriter -- wordcraft-cli mcp --connect 127.0.0.1:7981`, then restart the
+local Codex session. Claude Code uses `claude mcp add` instead. Installed Windows builds call
+the program `ghostwriter-cli`; source builds use `target/release/wordcraft-cli` (add `.exe` on
+Windows). A cloud chat cannot reach a control port on the writer's Mac.
+
+When you use Codex, include `"provider": "codex"` in `suggest.add` params so revisions are
+attributed to **Codex (suggestion)**. Omit it for the existing Claude attribution.
 
 ## 1. Read the document
 
@@ -73,3 +83,16 @@ writer just rejected.
 
 Finish with one line on what you suggested and why. Don't repeat the suggestions back in chat:
 the writer reads them in the page.
+
+## Study companion (2026-10-20)
+
+The continuous companion defaults to `--mode study`: do not rewrite study notes. `study.add`
+posts an independent information card (`anchor`, `information`, `kind`, optional `block` and
+`provider`). Use kinds `answer`, `context`, `fact-check`, `vocabulary`. Answer each explicit
+question independently, including short questions; preserve the question. `study.keep`,
+`study.dismiss`, `study.insert` and `study.reask` take a note `id`. `study.list` includes history;
+`view.studyNotes` opens it in the app. Dismissal preserves the information in the DOCX.
+`suggest.footnote` converts an inline proposal to a quiet hover note; rejection also retains
+its wording in history. `--mode edit` selects inline rewrites. Codex `--research` enables live
+web search; without it factual checks are model knowledge, not independent verification.
+The detailed editable brief is `docs/briefs/study.md`.

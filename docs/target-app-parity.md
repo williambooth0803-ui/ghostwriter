@@ -1,6 +1,7 @@
 # WordCraft parity with Microsoft Word
 
 > **Last reviewed:** 2026-10-10 · **Last updated:** 2026-10-16 · **Change:** trivial (shapes inserted in a row are all kept, #2019; previously trivial: East Asian typography: `w:eastAsianLayout` kept on save, not laid out; previously trivial: Ink to Shape recognises arrows; previously trivial: Windows Magnifier follows the caret onto a new line, #1119; previously trivial: table border drags with Ctrl and Alt, from the left edge and of selected cells, #711; previously trivial: table column and row markers on the rulers, #700; previously trivial: table borders and the resize handle drag on the page, #217; previously trivial: all 12 bibliography styles, #383; previously trivial: formatting revisions landed, #41; previously trivial: Draw Table and Eraser landed, #303; previously minor: readiness table with hours per audience; full number back to the additive weighted sum, 60%; mainstream and essentials numbers added; alpha gate checked; previously major: full re-measure against Word for Mac 16.113.4; replaces the parity tables that lived in ROADMAP.md) · **Target:** Microsoft Word (Microsoft 365) for Mac 16.113.4
+> **Fork update:** 2026-10-19 · Codex/Claude continuous companion noted under AI features; parity estimates unchanged.
 
 The authoritative assessment of how close WordCraft is to Microsoft Word. [`ROADMAP.md`](../ROADMAP.md)
 summarizes it; [`gaps.md`](gaps.md) itemizes every shortfall; the deep checklists are
@@ -199,7 +200,7 @@ Word. Their weighted sum is the **full ready for real work** number.
 | Platforms | 3% | 95% | 5–10 | [ROADMAP.md](../ROADMAP.md) | macOS (universal, signed), Windows x64/x86/arm64, Linux (AppImage/deb/rpm/Flatpak), FreeBSD, web. Beyond Word on Linux, BSD and the web; Word's iPad/iPhone/Android apps are out of scope |
 | Hardware | 1% | 40% | 20–40 | [hardware-parity.md](hardware-parity.md) | No native printing on desktop, no pen/ink, no dictation; GPU drawing and HiDPI fine. Ink hours are in the Features row (Draw tab) |
 | Ecosystem and plugins | 2% | 15% | 40–80 | [gaps.md](gaps.md) | Zotero built in, macros record/play commands, `.docm` macros preserved (#172). No VBA execution, no Office add-ins, no EndNote/Mendeley plugins, no cloud storage or co-authoring |
-| AI features | 0% | 40% | 15–30 | [gaps.md](gaps.md) | Beyond Word for external agents (MCP, CLI). No in-app writing assistant like Copilot yet (chat PR #178 open). Weight 0: Copilot is a paid add-on and not what decides a switch |
+| AI features | 0% | 40% | 15–30 | [gaps.md](gaps.md) | Beyond Word for external agents (MCP, CLI). This fork adds an external continuous Codex/Claude writing companion ([setup](companion.md)); in-app chat is still separate (PR #178 open). Weight 0: Copilot is a paid add-on and not what decides a switch |
 
 **Ready for real work ≈ 0.30·68 + 0.20·60 + 0.15·55 + 0.10·65 + 0.10·50 + 0.05·75 + 0.04·25 +
 0.03·95 + 0.01·40 + 0.02·15 ≈ 60%.**
@@ -251,6 +252,7 @@ can be used without committing Word output.
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-19 | minor | Ghostwriter: external Codex/Claude continuous companion; upstream readiness estimates unchanged |
 | 2026-10-15 | trivial | Pictures, shapes, text boxes: Insert › Shapes adds the new shape beside the selection, as Word draws it, so a second shape no longer replaces the first (still selected after its insert) and selected text stays; a picture still replaces a selected picture, as in Word (#2019) |
 | 2026-10-15 | trivial | Pictures, shapes, text boxes: Picture Styles, Picture Border and Artistic Effects draw again from the picture under them, so a second style replaces the first instead of framing the frame (Thick Frame then Simple Frame is a simple frame), a border replaces the border and keeps the style, a style replaces the border, and an effect replaces the effect (None removes it), as in Word; transparency was already absolute (#2052) |
 | 2026-10-18 | trivial | References row: Manage Sources imports Word's `Sources.xml` bibliography file (#2640); no percentage change |
@@ -314,3 +316,8 @@ can be used without committing Word output.
 | 2026-10-10 | minor | Stage checked against the core-workflow alpha gate: passes, stays alpha |
 | 2026-10-10 | major | Created from ROADMAP.md's "Parity by area" and "Estimate to 100%" sections; full re-measure against Word for Mac 16.113.4 (bundle listing, catalog diff from source, issue tracker); split into feature depth (67%) and ready for real work (60%); added proofing, East Asian, accessibility areas and the dimension table; hours re-calibrated from PR history |
 | 2026-10-06 | major | First estimate in ROADMAP.md: ~62% real feature parity, 120–150 h to 100% |
+
+### Fork update — 2026-10-20
+
+Study companion: separate answers per explicit question, quiet hover notes, preserved dismissed
+information and an adaptive study brief. Codex research is optional. See the companion guide.

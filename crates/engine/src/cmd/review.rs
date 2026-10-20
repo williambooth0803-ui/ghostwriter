@@ -301,6 +301,7 @@ pub fn comment_list(s: &Session) -> Vec<(u32, Option<Pos>)> {
             found.push((*id, None));
         }
     }
+    found.retain(|(id, _)| !s.doc.comments.get(id).is_some_and(|c| super::study::is_note(&s.doc, c)));
     found
 }
 
@@ -481,6 +482,9 @@ pub fn move_changes(s: &Session) -> Vec<(Pos, String, bool)> {
 }
 
 fn resolve_all(s: &mut Session, accept: bool) -> CmdResult {
+    for sp in super::suggest::spans(&s.doc) {
+        super::suggest::archive_span(s, &sp, if accept { "inserted" } else { "dismissed" })?;
+    }
     let stories: Vec<StoryRef> = std::iter::once(StoryRef::Body).chain(s.doc.parts.keys().map(|k| StoryRef::Part(*k))).collect();
     for st in stories {
         for path in s.doc.para_paths(st).into_iter().rev() {
@@ -569,6 +573,17 @@ fn resolve_sel(s: &mut Session, accept: bool) -> CmdResult {
     } else {
         (a, b)
     };
+    for sp in super::suggest::spans(&s.doc) {
+        if a.story == StoryRef::Body
+            && b.story == StoryRef::Body
+            && a.path <= wordcraft_doc::Path::top(sp.block)
+            && b.path >= wordcraft_doc::Path::top(sp.block)
+            && (a.path != wordcraft_doc::Path::top(sp.block) || a.off < sp.end)
+            && (b.path != wordcraft_doc::Path::top(sp.block) || b.off > sp.start)
+        {
+            super::suggest::archive_span(s, &sp, if accept { "inserted" } else { "dismissed" })?;
+        }
+    }
     // Moves with an end in the range: their other ends go with them.
     let moves = super::moves::names_in(s, &a, &b, caret_mark.as_ref());
     for path in s.doc.paths_between(&a, &b).into_iter().rev() {

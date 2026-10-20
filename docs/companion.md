@@ -1,16 +1,140 @@
-# Ghostwriter: Claude's suggestions in the page
+# Ghostwriter: AI suggestions in the page
 
 *Ghostwriter is this fork of WordCraft. The companion is its addition, not part of upstream WordCraft.*
 
-You write in WordCraft as usual. When you pause, a small program, `wordcraft-companion`, reads the
-paragraph you're on, asks Claude for a few edits, and puts them **in the page, in orange**, where
-they would go. The words they replace are hidden, so you read the paragraph as it would be once
-accepted. Hover a suggestion (or put the caret on it) for a card with **✓** (accept), **✗**
-(reject) and the words it replaces. Keep typing the whole time; suggestions never move your caret
-and never land in what you're typing.
+You write in WordCraft as usual. When you pause, `wordcraft-companion` reads nearby text and
+asks Codex or Claude for helpful information. In the default **study mode**, questions get
+separate answers in hover cards and **Study Notes and History**, with no changes to your words.
+You choose what to keep, insert, copy or dismiss. In **edit mode**, proposals appear inline in
+orange with accept/reject controls. Keep typing while the companion works.
 
-Claude is called through Claude Code's print mode (`claude -p`), so it runs on your Claude Code
-login (your subscription). No API key.
+Choose `--provider codex` for Codex CLI or `--provider claude` for Claude Code (the default,
+for existing installations). Both use the selected CLI's login; the companion doesn't need an
+API key. Your provider's usage limits still apply. You don't need to start an interactive AI
+chat or register an MCP server for the continuous companion.
+
+## Study mode: answers and information without rewriting
+
+**Study mode is now the default.** Existing launch commands still work; information appears in
+hover cards and the **Study Notes (N new)** button rather than being inserted into your notes.
+Use `--mode edit` to retain the earlier orange inline-edit behavior.
+
+Each question ending in `?`, `？` or `؟` is reviewed independently, including short questions such
+as “Why?”. Two questions in one paragraph produce two separate answer proposals and separate AI
+requests. `--max` limits supplemental information, not the number of question answers. Every AI
+request counts against `--max-per-hour`; unanswered questions resume when that budget permits.
+Failures remain queued rather than silently marking a question answered. Model answers can still
+be incomplete or wrong; this workflow guarantees separate requests, not correct knowledge.
+
+The built-in study brief infers the document's subject and purpose from the outline and nearby
+text, prioritizes questions, foreign words, conceptual explanations and factual checks, and
+preserves your phrasing. For a more detailed editable brief, use the bundled
+[study brief](briefs/study.md):
+
+```sh
+./target/release/wordcraft-companion --provider codex --mode study \
+  --brief docs/briefs/study.md --review-existing --research
+```
+
+`--research` enables Codex's live web search for source-backed fact checks. It requires Codex
+CLI; Claude's backend has no research tools. Without that flag the assistant uses model knowledge
+and is instructed to label factual checks as not independently verified. With research it is
+instructed to cite actual consulted URLs and distinguish evidence from inference. Links and
+answers are model output, not a guarantee of accuracy. Search and extra question requests use
+your provider's usage allowance. Web pages receive search queries as part of research.
+
+Hover a question or source phrase, or place the caret there, to read its card. Each card has:
+
+- **Keep as hover note**: retains the information off the page, with no superscript, highlight,
+  added words or pagination change. These are quiet annotations, not printed page-bottom footnotes.
+- **Insert into document**: explicitly adds the information after the anchor; undo restores it.
+- **Dismiss**: hides the hover card while preserving its contents in **Study Notes and History**.
+- **Ask again**: queues a fresh answer while retaining the previous information in history.
+- **Copy**: copies the information. Dismissed information can be restored as a hover note later.
+
+In edit mode the orange suggestion card also has a comment icon to keep an edit as a hover note
+while restoring the original words. Rejecting an inline edit (including Review-tab rejection)
+keeps its proposed wording in history. Old rejections made before this update cannot be recovered.
+
+Save as **DOCX** to retain notes and history, then reopen in WordCraft. They are stored as
+self-describing comments without document-body anchor markers; their exact source quote and
+paragraph let WordCraft find the hover location again. If the quote disappears or becomes
+ambiguous, the information remains in history instead of attaching to guessed text. Other word
+processors may display these as comments or drop unanchored comments when resaving. TXT, PDF and
+other exports do not preserve this private study history. A DOCX you share includes this information,
+including dismissed proposals; it is part of the saved file.
+
+The companion currently reviews top-level body paragraphs. Text in tables, headers and footnotes
+is outside its scope. It sees nearby paragraphs and the outline, not the full document in every
+request. Explicit question splitting is based on sentence punctuation; unusual abbreviations or
+quoted question marks may split a question imperfectly. Questions containing duplicate, ambiguous
+anchors stay queued if the app cannot attach their answer safely.
+
+## Codex on macOS (from source)
+
+1. Install/update Codex CLI, then sign in once:
+
+   ```sh
+   brew install --cask codex    # if already installed: brew upgrade --cask codex
+   codex login
+   codex login status
+   ```
+
+   Use a current Codex CLI whose `codex exec --help` lists `--ignore-user-config`,
+   `--ephemeral`, `--output-schema` and `--output-last-message`. If an option is unknown, update
+   Codex. `--codex PATH` can select a specific executable. On Windows, use a native Codex `.exe`
+   (or its full path); this backend does not launch `.cmd`/`.bat` shims through a shell.
+
+2. In your checkout of **this fork**, build the app and companion:
+
+   ```sh
+   cd "$HOME/ghostwriter"
+   cargo build --release -p wordcraft -p wordcraft-companion
+   ```
+
+3. Save your work and close any older WordCraft window. Launch the new build:
+
+   ```sh
+   ./target/release/wordcraft --control 7981
+   ```
+
+   Open your document in this window. Leave this Terminal tab running; it is occupied by the app.
+
+4. Open a **second Terminal tab** (⌘T) and start the continuous companion:
+
+   ```sh
+   cd "$HOME/ghostwriter"
+   ./target/release/wordcraft-companion --provider codex --review-existing
+   ```
+
+   Write a question (even a short one), or a paragraph of at least eight words, and pause. After the idle delay (4 seconds by
+   default), plus Codex's response time, study cards become available through hover and the Study Notes button.
+   Use the card actions to keep, insert, dismiss or copy information. No changes are accepted automatically. Ctrl+C in the second tab stops the companion;
+   it leaves the document window running. Restart the app and companion when you want to write
+   again; rebuilding is only needed after code updates.
+
+   `--review-existing` also checks existing text throughout the document. Omit it to consider
+   only newly changed paragraphs near your caret. Optionally add `--brief FILE` and `--style FILE`.
+
+To test one paragraph first without posting anything:
+
+```sh
+./target/release/wordcraft-companion --provider codex --once --dry-run
+```
+
+Codex uses its CLI's default model unless you pass `--model NAME`; no Claude model alias is sent
+to Codex. Each request is a fresh `codex exec` run in a private temporary directory, with a
+structured JSON response schema, a read-only sandbox, approvals disabled, shell/patch/app tools
+disabled and web search disabled unless `--research` is supplied. User config and project instructions are not loaded; the
+existing Codex login is still used. The companion reads only the final response file and posts
+`suggest.add` commands itself. Requests time out after 180 seconds; failure, missing final output
+or malformed JSON posts nothing. Temporary prompt/reply files are removed after each request.
+An OS crash or force-kill can leave temporary files behind.
+
+The selected text, nearby context, outline, brief and style guide are sent to the selected AI
+provider. `--dry-run` still calls that provider; it only prevents suggestions being posted.
+
+Claude uses Claude Code's print mode (`claude -p`), through your Claude Code login.
 
 ## Install (Windows)
 
@@ -79,7 +203,7 @@ Audience: Substack readers who follow political economy. Tone: plain-spoken, a l
 Section 3 must answer the "induced demand" objection before the conclusion.
 ```
 
-## Using it
+## Using inline edit mode (`--mode edit`)
 
 | | |
 |---|---|
@@ -88,14 +212,14 @@ Section 3 must answer the "induced demand" objection before the conclusion.
 | Undo an accept or reject | Ctrl+Z, as for any edit |
 | Accept or reject them all | `suggest.accept {"all": true}` / `suggest.reject {"all": true}` (command search, CLI or MCP) |
 
-- Suggestions arrive a few seconds after you stop typing (`--idle`, default 4 s, plus Claude's
-  answer time, typically 5–10 s). Only paragraphs near the caret (`--reach`, default 2) that
-  changed since Claude last saw them are looked at; headings and short paragraphs are skipped.
+- Suggestions arrive after you stop typing (`--idle`, default 4 s, plus the selected provider's
+  response time). Only paragraphs near the caret (`--reach`, default 2) that
+  changed since the assistant last saw them are looked at; headings and short paragraphs are skipped.
 - A paragraph gets at most `--max` (3) suggestions per round and no new round while it has
   suggestions waiting, so accept or reject them to get more.
 - Ctrl+Z can take back a suggestion that arrived after the step you undo. The companion doesn't
   ask again about text it has seen; type a little more to trigger a new round.
-- Suggestions are tracked changes by the author **Claude (suggestion)**. Saving keeps them, so
+- Suggestions are tracked changes by **Codex (suggestion)** or **Claude (suggestion)**. Saving keeps them, so
   they come back when you reopen the file; Word shows them as ordinary tracked changes. Accept or
   reject them before you export or paste into Substack. A PDF export shows them as accepted, in
   orange.
@@ -105,20 +229,25 @@ Section 3 must answer the "induced demand" objection before the conclusion.
 
 | Option | Default | |
 |---|---|---|
+| `--mode NAME` | `study` | Quiet study cards; `edit` for inline edits |
+| `--research` | off | Codex live web search for evidence and source links |
+| `--provider NAME` | `claude` | `codex` uses Codex CLI; `claude` uses Claude Code |
 | `--connect HOST:PORT` | `127.0.0.1:7981` | the window to watch |
 | `--brief FILE`, `--style FILE` | | see above |
-| `--model NAME` | `sonnet` | `haiku` is faster and lighter on your plan's limits, `opus` reads closer |
+| `--model NAME` | provider default | Claude: `sonnet`; Codex: CLI default; choose a model supported by your provider/account |
 | `--idle SECONDS` | 4 | pause before asking |
 | `--max N` | 3 | suggestions per paragraph |
 | `--reach N` | 2 | paragraphs around the caret to consider |
 | `--review-existing` | off | also review the text that was there at start (any paragraph) |
-| `--max-per-hour N` | 60 | a ceiling on Claude calls |
+| `--max-per-hour N` | 60 | a ceiling on AI calls, including failed requests |
 | `--claude PATH` | `claude` | the Claude Code program |
 | `--claude-arg ARG` | | more `claude -p` arguments, e.g. `--claude-arg=--effort=low` |
+| `--codex PATH` | `codex` | native Codex CLI executable (requires `--provider codex`) |
+| `--codex-arg ARG` | | more `codex exec` arguments, e.g. `--codex-arg=--config=model_reasoning_effort=\"low\"`; avoid overriding the companion's output/sandbox options |
 | `--once` | | review the caret's paragraph now and exit |
-| `--dry-run`, `--verbose` | | print instead of posting; print Claude's whole reply |
+| `--dry-run`, `--verbose` | | print instead of posting; print the provider's whole reply |
 
-Every call counts toward your Claude plan's usage limits. Writing steadily, expect about one call
+Every call counts toward your selected provider's usage limits. Writing steadily, expect about one call
 per paragraph.
 
 ## Ask Claude Code directly (MCP)
@@ -149,7 +278,7 @@ Any client can run these (the companion uses only these):
 
 | Command | Params | |
 |---|---|---|
-| `suggest.add` | `{"find", "replace"}` or `{"after"\|"before", "insert"}`, `"occurrence"?` | quote exact body text; only the words that differ are marked; refused if the caret is inside the quoted words, if the quote isn't plain untracked text, or appears more than once without `occurrence` |
+| `suggest.add` | `{"find", "replace"}` or `{"after"\|"before", "insert"}`, `"occurrence"?`, `"provider"?` | quote exact body text; `provider` is `claude` (default) or `codex`, for revision attribution; only the words that differ are marked; refused if the caret is inside the quoted words, if the quote isn't plain untracked text, or appears more than once without `occurrence` |
 | `suggest.list` | | `[{id, block, start, end, text, replaces}]` |
 | `suggest.context` | | the body paragraphs as they read (suggestions in), and the caret's paragraph |
 | `suggest.accept` / `suggest.reject` | `{"id"?, "all"?}` | without either: the one at the caret; an undo step |
@@ -199,3 +328,15 @@ again with `cargo xtask version set <version>` before tagging a release.
 3. `.github/workflows/ghostwriter-release.yml` builds the Windows x64 and ARM64 installers
    (`packaging/windows/ghostwriter-package.ps1`, `ghostwriter.wxs`) and publishes
    "Ghostwriter 1.0.1" with them. Upstream's `release.yml` stays as it is and isn't used.
+
+## Revision history
+
+| Date | Change |
+|---|---|
+| 2026-10-19 | Added the selectable Codex CLI backend, provider attribution and macOS setup. Claude remains the default. |
+
+### 2026-10-20 — Study companion
+
+Independent question requests, default study guidance, optional Codex research, hover notes,
+explicit insertion and persistent dismissed-information history. Inline rejection now archives
+the proposed wording; adjacent proposals retain separate identities.
